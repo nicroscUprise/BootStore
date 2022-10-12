@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@emotion/react";
-import { createTheme, CssBaseline, } from "@mui/material";
+import { createTheme, CssBaseline, useStepContext, } from "@mui/material";
 import { Container } from "@mui/system";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Route, Switch } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import AboutPage from "../../features/about/AboutPage";
@@ -13,8 +13,29 @@ import Header from "./Header";
 import 'react-toastify/dist/ReactToastify.css';
 import ServerError from "../errors/ServerError";
 import NotFound from "../errors/NotFound";
+import BasketPage from "../../features/basket/BasketPage";
+import { useStoreContext } from "../context/StoreContext";
+import { getCookie } from "../util/util";
+import agent from "../api/agent";
+import LoadingComponent from "./LoadingComponent";
+import CheckoutPage from "../../features/checkout/CheckoutPage";
 
 function App() {
+  const {setBasket} = useStoreContext();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const buyerId = getCookie('buyerId');
+    if(buyerId) {
+      agent.Basket.get()
+        .then(basket => setBasket(basket))
+        .catch(error => console.log(error))
+        .finally(() => setLoading(false));
+    } else{
+      setLoading(false);
+    }
+  }, [setBasket])
+
   const [darkMode, setDarkmode] = useState(false);
   const paletteType = darkMode ? 'dark' : 'light'
   const theme = createTheme({
@@ -30,6 +51,8 @@ function App() {
     setDarkmode(!darkMode);
   }
 
+  if (loading) return <LoadingComponent message="Initialising app..."/>
+
   return (
     <ThemeProvider theme={theme}>
       <ToastContainer position="bottom-right" hideProgressBar />
@@ -43,6 +66,8 @@ function App() {
           <Route path='/contact' component={ContactPage} />
           <Route path='/catalog/:id' component={ProductDetails} />
           <Route path='/server-error' component={ServerError} />
+          <Route path='/basket' component={BasketPage} />
+          <Route path='/checkout' component={CheckoutPage} />
           <Route component={NotFound} />
         </Switch>
       </Container>
